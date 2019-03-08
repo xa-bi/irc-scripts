@@ -1,0 +1,122 @@
+### Lag.irc (c) 1994 Xabier Vazquez Gallardo
+### This will allows you to check if you are in a lag and ping time to some1
+### All every minute :)
+### Commands: /LAG      : gives you the nick of who are you pinging
+###           /LAG -    : stop pinging him
+###           /LAG nick : will check the ping time between you and nick
+### Status Line:
+### ........ [*Y:1A Foo:1A*]
+###           ^^ ^^  ^  ^^^ 
+###           || ||  |  ||+-> Sending a ping to foo ....
+###           || ||  |  |+--> Foo is away
+###           || ||  |  +---> You have a ping of 1 second to foo
+###           || ||  +------> You are pinging foo
+###           || |+---------> You are Away.
+###           || +----------> You have a lag of 1 secont to your host
+###           |+------------> Y: This means 'You'  
+###           +-------------> Sending a ping to you
+### ??? Means that the script can't ping him cause he isn't in.
+
+/set novice off
+
+### Program info ....
+@ lag.author  = [XaBier Vazquez Gallardo (AKA: XaBi)]
+@ lag.email   = [siavagaj@si.ehu.es]
+@ lag.version = [1.1]
+@ lag.date    = [06/06/94]
+
+### Check pings
+alias checkping {
+      if ([$0] == [$nickping])
+         { @ nickping  = [$0]
+           @ time.him  = [ $nickping:${time()-lastping.him}$lag_a.him]
+           @ ping.him  = []
+           @ lag_a.him = [] }
+         { if ([$0] == [$N])
+              { @ time.me  = [Y:${time()-lastping.me}$lag_a.me]
+                @ lag_a.me = []
+                @ ping.me  = [] }
+              { @ t.temp   = [$2] 
+                echo *** CTCP PING reply from $0: ${time()-t.temp} second } }
+      ^set status_user  [$time.me$time.him]
+}
+
+### Check if Away
+alias checkaway {
+    if (([$3] == [$N]) && ([$ping.me] == [YES]))
+       { @ lag_a.me = [A] }
+       { if (([$3] == [$nickping]) && ([$ping.him] == [YES]))
+            { @ lag_a.him = [A] }
+            { echo *** $3 is away $4- } }
+}
+
+### Check nick changes or logouts
+alias checknick {
+      if (([$0] == [$nickping]) && ([$ping.him] == [YES]))
+         { @ time.him      = [ $nickping:???$lag_a.him]
+           ^set status_user  [$time.me$time.him]
+           @ ping.him      = []
+           @ lag_a.him     = [] }
+         { echo *** $0: No such nick/channel }
+}
+
+### Every minute check ping
+^on ^timer * send_ping
+alias send_ping {
+    if ([$ping.me])
+       { @ time.me       = [Y:>60$lag_a.me] }
+       {}
+    @ ping.me       = [YES]
+    @ lag_a.me      = []
+    @ lastping.me   = time()
+    @ time.me       = [*$time.me]
+    ^ping $N
+    if ([$nickping])
+       { if ([$ping.him])
+            { @ time.him = [ $nickping:>60$lag_a.him] }
+            {}
+         @ ping.him      = [YES] 
+         @ lag_a.him     = []
+         @ lastping.him  = time()
+         @ time.him      = [$time.him*]
+         ^ping $nickping }
+       {}
+   ^set status_user  [$time.me$time.him] 
+}
+
+### Main program 
+alias lag {
+      if ([$0])
+         { if ([$0] == [-])
+              { if ([$nickping])
+                   { echo  [LAG]  $nickping removed from LAG check
+                     @ time.him  = []
+                     @ ping.him  = []
+                     @ nickping  = []
+                     @ lag_a.him = []
+                     ^set status_user  [$time.me] }
+                   { echo  [LAG]  You are not checking LAG to anyone } }
+              { echo  [LAG]  Now you are ckecking LAG to $0
+                @ nickping     = [$0]
+                @ ping.him     = [YES]
+                @ lastping.him = time()
+                @ lag_a.him    = []
+                ^set status_user  [$time.me]
+                ping $nickping } }
+         { if ([$nickping])
+              { echo  [LAG]  You are checking LAG to $nickping }
+              { echo  [LAG]  You are not checking LAG to anyone } }
+}
+
+### Initial stuff
+^on ^ctcp_reply "% PING %" checkping $0-
+^on ^raw_irc "* 301 *" checkaway $0-
+^on ^raw_irc "* 401 *" checknick $3
+@ ping.me     = [YES]
+@ lastping.me = time()
+@ lag_a.me    = []
+eval ping $N
+
+### Initial Echoes
+eval echo  [LAG]  LAG V$lag.version check routines By XaBi loaded ok .....
+eval echo  [LAG]  Type /LAG <nick> to check lag to some1 or /LAG - to remove it.

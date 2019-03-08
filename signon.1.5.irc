@@ -1,0 +1,80 @@
+# change this varible to the channel u are normally on
+
+^assign normchan #warez
+
+# this is a sample invite list for #warez
+# it is by nick because of the notify command used to detect signon
+
+eval ^assign eleet wcp midiman pot ozone barnabus hacker omnipotnt nglok 
+eval ^assign eleet $eleet yazoo rebel srebel xabi cp jizmak euler_ borad
+eval ^assign eleet $eleet shuttle cys_ cys t-flash realjizz fastfred rigor
+eval ^assign eleet $eleet presto hydronium mharmless eagle_1 pilfus cerberus
+eval ^assign eleet $eleet gouch sp0t spammy lone-wolf dralthi pr|mus nemo
+eval ^assign eleet $eleet presence wcp scumdog lenin number44 x thewhiz msquito
+eval ^assign eleet $eleet nocarrier admiral cyanb bball amp tboard low_rider st6
+eval ^assign eleet $eleet pru2 pru3 greenday hotwire pi0neer trickster drft_beer
+eval ^assign eleet $eleet brainstrm pointless blazer os dinki w_length betaman
+eval ^assign eleet $eleet dejavu almighty  arb marfada9 entropy fourth iNF
+eval ^assign eleet $eleet patch kruey blakbeard zarathust 	
+
+alias check if (match($0 $eleet))
+	{echo ### $0 is on your invite list}
+	{echo ### $0 is NOT on your invite list}
+
+^on ^notify_signon "*" signondetect $0
+alias signondetect {
+      if ( match($normchan $mychannels()) )
+           { if (ischanop($N $NORMCHAN))
+	        { quote invite $0 $NORMCHAN }
+                { ^msg $0 I'm not opped on $NORMCHAN
+                  ^msg $0 If you want, I can ask ppl on channel to invite you
+                  ^msg $0 type /MSG $N [AI] invite } }
+           {}
+}
+
+^on ^msg "* *[AI] invite" autoinvite $0
+
+^on -msg "* *invite*" autoinvite $0
+
+alias autoinvite {
+      if ( match($0 $eleet) )
+	 { if ( match($NORMCHAN $mychannels()) )
+              { if (ischanop($N $NORMCHAN))
+                   { invite $0 $NORMCHAN }
+                   { ^msg $0 Sorry I'm not opped on $NORMCHAN
+                     ^msg $0 I'll ask ppl to invite you
+                     ^msg $NORMCHAN $0 wants an invite } }
+              { ^msg $0 Sorry, I'm not on $NORMCHAN } }
+	 { ^msg $0 U R not eleet enough. }
+}
+	
+alias aji {
+      ^on ^invite "* $normchan" invitingme
+}
+
+alias invitingme {
+   	join $normchan
+   	on invite -"* $normchan"
+}
+
+alias around notify +
+
+aji
+
+^timer 300 aji
+
+^on ^notify_signoff *
+eval ^notify $eleet
+^on ^raw_irc "% 443 *" #
+^on ^raw_irc "% 341 *" #
+echo ### AUTO INVITER 1.5  by mostly XaBi
+echo ### It was WCP's script, but he wrote a shit script, so XaBi
+echo ### fixed it...special tnx to XaBi
+echo ###
+echo ### U will need to edit this for the people u want to invite
+echo ### and for the channel u want this to work on
+echo ### version 2.0 will have file features to make this easier
+echo ###
+echo ### Only two commands:
+echo ### check <nick>   This checks to see if <nick> is on your list
+echo ### around         This checks to see who on your list is around

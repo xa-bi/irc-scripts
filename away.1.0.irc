@@ -1,0 +1,47 @@
+### Script name: away.irc
+### This script will create better away replies. Try it, it's cool.
+### USE: you must use /AWAY as you was ussing it ...
+
+### Program info ....
+@ away.author  = [XaBier Vazquez Gallardo (AKA XaBi)]
+@ away.email   = [siavagaj@si.ehu.es]
+@ away.version = [1.0]
+@ away.date    = [09/02/94]
+
+### Every minute we must check if we're still away
+alias check.away {
+      if ([$away.isaway] == [YES])
+         { //away $trans($tdiff(${time() - away.awaysince})): ago. $away.awaymsg }
+         {}
+}
+
+### Transform '1 hour 4 minutes 7 seconds' into '1h 4m 7s' (Shorter :) )
+alias trans {
+      if ([$2])
+         { @ FUNCTION_RETURN = [$0]##[$left(1 $1) ]##[$trans($2-)] }
+         { @ FUNCTION_RETURN = [$0]##[$left(1 $1)] }
+}
+
+### New away alias
+alias away {
+      if ([$0])
+         { ^echo *** You have been marked as being away
+           @ away.isaway    = [YES]
+           @ away.awaymsg   = [$0-]
+           @ away.awaysince = [$time()]
+           check.away }
+         { //away
+           @ away.isaway    = [NO]
+           @ away.awaymsg   = []
+           @ away.awaysince = 0 }
+}
+
+### Initial stuff: ONS & VARIABLES initialization
+^on #^timer -600 * check.away
+^on ^raw_irc "* 306 *" #
+
+@ away.isaway    = [NO]
+@ away.awaymsg   = [] 
+@ away.awaysince = 0
+
+eval echo *** AWAY $away.version (c) XaBi'94 loaded OK.

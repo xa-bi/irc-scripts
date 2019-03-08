@@ -1,0 +1,694 @@
+# Program    : XDCC Script Version 1.4 final
+# Date       : 12.12.93
+# Written by : XaBi
+# Please email any bugs, comments or simply to get latest version to:
+# sixconse@sisb00.si.ehu.es
+
+# +--------------------------------------------------------------------------+
+# | Variable init.                                                           |
+# +--------------------------------------------------------------------------+
+eval ^assign OLD_STATUS $STATUS_FORMAT
+^assign XDCCVER 2.0b
+^assign AUTOGET ON
+^assign AUTOSEND ON
+^assign AUTOCLOSE OFF
+^assign NOISE ON
+^assign CHANGEST ON
+^assign TOTFILE 0
+^assign GETCOUNT 0
+^assign LOADFILE OFF
+^assign OFFERFILE /b0013h/externos/sixconse/bin/script/offer.xdcc
+foreach ARRAYFILE XX
+        { ^assign -ARRAYFILE[$XX]
+          ^assign -ARRAYDESC[$XX]
+          ^assign -ARRAYPATH[$XX] }
+# +--------------------------------------------------------------------------+
+# | Some important SETS                                                      |
+# +--------------------------------------------------------------------------+
+set novice off
+set exec_protection off
+# +--------------------------------------------------------------------------+
+# | Only two ON's for faster work                                            |
+# +--------------------------------------------------------------------------+
+on ^ctcp "*DCC SEND* * *" dccrequest $0 $4
+on ^msg "% XDCC *" xdccmsg $0 $2-
+# +--------------------------------------------------------------------------+
+# | Parse MSG's alias                                                        |
+# +--------------------------------------------------------------------------+
+alias xdccmsg {
+      if (match($1 HELP LIST SEND VERSION))
+         { $1COMMAND $0 $2- }
+         { ^notice $0 Try /MSG $N XDCC HELP }
+}
+# +--------------------------------------------------------------------------+
+# | People Help Command                                                      |
+# +--------------------------------------------------------------------------+
+alias HELPcommand {
+      ^notice $0 /MSG $N XDCC HELP    to get this help.
+      ^notice $0 /MSG $N XDCC LIST    to get the list of offered files.
+      ^notice $0 /MSG $N XDCC SEND #N to send file #N
+      ^notice $0 /MSG $N XDCC VERSION to get XDCC version.
+}
+# +--------------------------------------------------------------------------+
+# | People List Command                                                      |
+# +--------------------------------------------------------------------------+
+alias LISTcommand {
+      if (TOTFILE > 0)
+         { @ COUNT0 = 1
+           while (COUNT0 <= TOTFILE)
+                 { ^notice $0 #$COUNT0 $ARRAYDESC[$COUNT0]
+                   @COUNT0 = COUNT0 + 1 }
+           ^assign -COUNT0 }
+         { ^notice $0 Sorry there are no files offered. }
+}
+^on ^public "* xfilesx" LISTcommand $0
+# +--------------------------------------------------------------------------+
+# | This alias send people the files requested                               |
+# +--------------------------------------------------------------------------+
+alias SENDcommand {
+      if ([$AUTOSEND] == [ON])
+         { if ([$1])
+              { if ([$left(1 $1)] == [#])
+                   { ^assign TEMP $1
+                     ^assign NUM $right(${@TEMP-index(# $1)+1} $1)
+                     if ([$ARRAYFILE[$NUM]])
+                        { xdccecho Sending $1 to $0.
+                          ^notice $0 Sending you $ARRAYDESC[$NUM]
+                          @ COUNT1 = 0
+                          while (word($COUNT1 $ARRAYFILE[$NUM]))
+                                { dcc send $0 $ARRAYPATH[$NUM]/$word($COUNT1 $ARRAYFILE[$NUM])
+                                  @ COUNT1 = COUNT1 + 1 }
+                          ^notice $0 Total files sent : $COUNT1
+                          ^assign -COUNT1 }
+                        { ^notice $0 File $1 doesn't exist, try /msg $N XDCC LIST }
+                     ^assign -TEMP
+                     ^assign -NUM }
+                   { ^notice $0 /msg $N XDCC SEND $1 is not a valid format.
+                     ^notice $0 Try /msg $N XDCC HELP } }
+              { ^notice $0 What file??? Try /msg $N XDCC HELP } }
+         { notice $0 Sorry, this function is now dissabled. }
+}
+# +--------------------------------------------------------------------------+
+# | This alias send XDCC version and mor info                                |
+# +--------------------------------------------------------------------------+
+alias VERSIONcommand {
+      notice $0 XDCC Version: $XDCCVER (c) XaBi '93
+      notice $0 To get latest XDCC version please email to sixconse@sisb00.si.ehu.es
+}
+# +--------------------------------------------------------------------------+
+# | This alias parse your commands to this script                            |
+# +--------------------------------------------------------------------------+
+alias xdcc {
+      if (match($0 CLOSE GET DIR AUTOCLOSE HELP LIST PLIST SEND STATUS NOTICE OFFER DOFFER AUTOGET AUTOSEND NOISE CSTAT GLIST))
+         { $0MCOMMAND $1- }
+         { echo  [XDCC]  Try /XDCC HELP }
+}
+# +--------------------------------------------------------------------------+
+# | This is your Help Script                                                 |
+# +--------------------------------------------------------------------------+
+alias HELPmcommand {
+      if ([$0])
+         { if (match($0 HELP LIST PLIST SEND STATUS NOTICE OFFER FILE DOFFER AUTOGET AUTOSEND NOISE CSTAT DIR GET CLOSE AUTOCLOSE GLIST))
+              { echo  [XDCC]  Help on command: $0
+                $0HCOMMAND }
+              { echo  [XDCC]  $0 is not a valid command. } }
+         { echo  [XDCC]  Script $XDCCVER (c) XaBi'93
+           echo  [XDCC]  /XDCC HELP [Command] to get help on Command
+           echo  [XDCC]  /XDCC LIST      to get a list of files offered
+           echo  [XDCC]  /XDCC GLIST     to get a list of pending dcc's
+           echo  [XDCC]  /XDCC NOTICE    to make a public notice
+           echo  [XDCC]  /XDCC PLIST     to take the offered list on CHANNEL
+           echo  [XDCC]  /XDCC SEND      to send files
+           echo  [XDCC]  /XDCC GET       to get files
+           echo  [XDCC]  /XDCC CLOSE     to close files
+           echo  [XDCC]  /XDCC STATUS    to get XDCC status
+           echo  [XDCC]  /XDCC OFFER     to offer files to ppl
+           echo  [XDCC]  /XDCC DOFFER    to take off files from offered list
+           echo  [XDCC]  /XDCC DIR       to get a dir
+           echo  [XDCC]  /XDCC AUTOGET   to switch Autoget            ON/OFF
+           echo  [XDCC]  /XDCC AUTOSEND  to switch Autosend           ON/OFF
+           echo  [XDCC]  /XDCC AUTOCLOSE to switch Autoclose          ON/OFF
+           echo  [XDCC]  /XDCC NOISE     to switch Noise              ON/OFF
+           echo  [XDCC]  /XDCC CSTAT     to switch Change_status_line ON/OFF
+           echo  [XDCC]  /XDCC FILE      help about to initialice the loadfile
+           echo  [XDCC]  (*) Wildcards allowed on OFFER/SEND/DIR command }
+}
+alias HELPHCOMMAND {
+      echo  [XDCC]  Format: /XDCC HELP [Command]
+      echo  [XDCC]  Shows a help of any XDCC command, without [Command]
+      echo  [XDCC]  shows a general help.
+}
+alias LISTHCOMMAND {
+      echo  [XDCC]  Format: /XDCC LIST
+      echo  [XDCC]  Shows all the files offered.
+      echo  [XDCC]  See also: AUTOSEND OFFER DOFFER
+}
+alias GLISTHCOMMAND {
+      echo  [XDCC]  Format: /XDCC GLIST
+      echo  [XDCC]  Shows all the files pending to get.
+      echo  [XDCC]  See also: GET AUTOGET AUTOCLOSE CLOSE
+}
+alias DIRHCOMMAND {
+      echo  [XDCC]  Format: /XDCC DIR
+      echo  [XDCC]  Shows the files on the current dir. Wilcards allowed.
+      echo  [XDCC]  Ie: *.irc *.exe
+}
+alias GETHCOMMAND {
+      echo  [XDCC]  Format: /XDCC GET
+      echo  [XDCC]  Allows you to get files from some1.
+      echo  [XDCC]  See also: AUTOGET AUTOCLOSE GLIST
+}
+alias CLOSEHCOMMAND {
+      echo  [XDCC]  Format: /XDCC CLOSE
+      echo  [XDCC]  Allows you to close files from some1.
+      echo  [XDCC]  See also: AUTOGET GET AUTOCLOSE GLIST
+}
+alias AUTOCLOSEHCOMMAND {
+      echo  [XDCC]  Format: /XDCC AUTOCLOSE
+      echo  [XDCC]  This command switch ON/OFF autoclose
+      echo  [XDCC]  When it's ON all filles offered to you will be closed
+      echo  [XDCC]  When it's OFF if AUTOGET is OFF all files offered to
+      echo  [XDCC]  you will be saved on an array, you must use GET command
+      echo  [XDCC]  to get it.
+      echo  [XDCC]  See also: CLOSE STATUS
+}
+alias NOTICEHCOMMAND {
+      echo  [XDCC]  Format: /XDCC NOTICE
+      echo  [XDCC]  Make a public notice about how to use XDCC on you
+      echo  [XDCC]  You must use this command to avoid flooding the channel.
+      echo  [XDCC]  See also: PLIST LIST
+}
+alias PLISTHCOMMAND {
+      echo  [XDCC]  Format: /XDCC PLIST
+      echo  [XDCC]  Show the list of files offered on public.
+      echo  [XDCC]  Be carefull with this command, you can flood the channel
+      echo  [XDCC]  See also: LIST NOTICE
+}
+alias SENDHCOMMAND {
+      echo  [XDCC]  Format: /XDCC SEND
+      echo  [XDCC]  This command let you send files to ppl.
+      echo  [XDCC]  You can send multi files to multi nicks.
+      echo  [XDCC]  IE: FILES: *.zip *.exe
+      echo  [XDCC]      NICKS: $N Byte_ Barnabus
+      echo  [XDCC]  This send *.zip *.exe to $N, Byte_ and Barnabus
+      echo  [XDCC]  See also: DIR OFFER
+}
+alias STATUSHCOMMAND {
+      echo  [XDCC]  Format: /XDCC STATUS
+      echo  [XDCC]  This command shows you the XDCC script status.
+}
+alias OFFERHCOMMAND {
+      echo  [XDCC]  Format: /XDCC OFFER
+      echo  [XDCC]  This command lets you offer files to ppl.
+      echo  [XDCC]  You can offer multiple files.
+      echo  [XDCC]  IE: FILES: xdcc.*
+      echo  [XDCC]      Description: Last XDCC script
+      echo  [XDCC]  This offer xdcc.irc and xdcc.nfo to ppl on a pack.
+      echo  [XDCC]  See also: AUTOSEND SEND DIR DOFFER
+}
+alias DOFFERHCOMMAND {
+      echo  [XDCC]  Format: /XDCC DOFFER
+      echo  [XDCC]  This command lets you take out take off files offered
+      echo  [XDCC]  You can take off all files or a simple pack.
+      echo  [XDCC]  * to take off all files or N to take off N pack
+      echo  [XDCC]  See also: OFFER LIST
+}
+alias AUTOGETHCOMMAND {
+      echo  [XDCC]  Format: /XDCC AUTOGET
+      echo  [XDCC]  This command switchs ON/OFF AUTOGET
+      echo  [XDCC]  See also: GET
+}
+alias AUTOSENDHCOMMAND {
+      echo  [XDCC]  Format: /XDCC AUTOSEND
+      echo  [XDCC]  This comamnd switchs ON/OFF AUTOSEND
+      echo  [XDCC]  See also: OFFER LIST DOFFER
+}
+alias NOISEHCOMMAND {
+      echo  [XDCC]  Format: /XDCC NOISE
+      echo  [XDCC]  This command switchs ON/OFF script NOISE
+      echo  [XDCC]  When it's ON XDCC script shows you all messages
+}
+alias CSTATHCOMMAND {
+      echo  [XDCC]  Format: /XDCC CSTAT
+      echo  [XDCC]  This command switchs ON/OFF the change line status
+      echo  [XDCC]  When it's ON XDCC script add to the status line some info
+      echo  [XDCC]  like this [GSN00]
+      echo  [XDCC]  G ---> AUTOGET   ON
+      echo  [XDCC]  S ---> AUTOSEND  ON
+      echo  [XDCC]  N ---> NOISE     ON
+      echo  [XDCC]  C ---> AUTOCLOSE ON
+      echo  [XDCC]  00 --> 0 files offered
+      echo  [XDCC]  00 --> 0 files pending to get
+}
+alias FILEHCOMMAND {
+      echo  [XDCC]  Now you can use a init file with data about files you would
+      echo  [XDCC]  like to offer. To use this file you must initialice this
+      echo  [XDCC]  two vars on top of this script.
+      echo  [XDCC]  LOADFILE it must be ON or OFF .... no more info.
+      echo  [XDCC]  OFFERFILE this must have the full path and name of the file
+      echo  [XDCC]  The file must be a text file with three lines by pack and
+      echo  [XDCC]  each line must begin with one of this words:files,desc,path
+      echo  [XDCC]  Here goes one example file:
+      echo  [XDCC]  files xdcc.irc xabi.irc       (wildcards not allowed)
+      echo  [XDCC]  desc A complete Xabi script pack
+      echo  [XDCC]  path /b0013h/externos/sixconse/bin/script   (full path)
+      echo  [XDCC]  ....... and you can add more packs :)
+      echo  [XDCC]  See also: LIST DOFFER
+}
+# +--------------------------------------------------------------------------+
+# | This is your file offered list command                                   |
+# +--------------------------------------------------------------------------+
+alias LISTmcommand {
+      if (TOTFILE > 0)
+         { @ COUNT2 = 1
+           while (COUNT2 <= TOTFILE)
+                 { echo  [XDCC]  #$COUNT2  $ARRAYDESC[$COUNT2]
+                   echo  [XDCC]  #$COUNT2  $ARRAYPATH[$COUNT2]/ : $ARRAYFILE[$COUNT2]
+                   @ COUNT2 = COUNT2 + 1 }
+           ^assign -COUNT2 }
+         { echo  [XDCC]  There are no files offered. }
+}
+# +--------------------------------------------------------------------------+
+# | Make a notice                                                            |
+# +--------------------------------------------------------------------------+
+alias NOTICEmcommand {
+      say To get a list of files I'm offering now /MSG $N XDCC LIST
+}
+# +--------------------------------------------------------------------------+
+# | Put on public all your list                                              |
+# +--------------------------------------------------------------------------+
+alias PLISTmcommand {
+      if (TOTFILE > 0)
+         { say ** FILES OFFERED. /MSG $N XDCC SEND #N for autosend file #N
+           @ COUNT3 = 1
+           while (COUNT3 <= TOTFILE)
+                  { say #$COUNT3  $ARRAYDESC[$COUNT3]
+                   @ COUNT3 = COUNT3 + 1 }
+           ^assign -COUNT2 }
+         { echo  [XDCC]  There are no files offered }
+}
+# +--------------------------------------------------------------------------+
+# | This is the Multi NICK/FILE file send command. Wildcards allowed         |
+# +--------------------------------------------------------------------------+
+alias SENDmcommand {
+      ^assign TMPVAR $"[XDCC] Files to send: "
+      if ([$TMPVAR])
+         { if ([$getdir()] == [OK])
+              { ^assign NICKLIST $"[XDCC] Nicks: "
+                if ([$NICKLIST])
+                   { @ SENDTOT = 0
+                     dosend
+                     xdccecho Total DCC's $SENDTOT
+                     ^assign -SENDTOT }
+                   {}
+                ^assign -NICKLIST }
+              { echo  [XDCC]  Please check the files ... } }
+         {}
+      ^assign -TMPVAR
+}
+# +--------------------------------------------------------------------------+
+# | Internal alias, WARNING: don't use it                                    |
+# +--------------------------------------------------------------------------+
+alias getdir {
+      ^assign -FILELIST
+      ^assign DIRERROR NO
+      ^on -exec_error "DIR1 *" {
+           echo  [XDCC]  Error: $1-
+           assign DIRERROR YES }
+      ^on ^exec "DIR1 *" addfile $$1-
+      @ COUNT4 = 0
+      while (word($COUNT4 $TMPVAR))
+            { ^exec -name DIR1 ls $word($COUNT4 $TMPVAR)
+              ^wait %DIR1
+              @ COUNT4 = COUNT4 + 1 }
+      ^assign -COUNT4
+      if ([$FILELIST])
+         {}
+         { ^assign DIRERROR YES }
+      if ([$DIRERROR] == [YES])
+         { ^assign function_return ERROR }
+         { ^assign function_return OK }
+      ^assign -DIRERROR
+}
+# +--------------------------------------------------------------------------+
+# | Internal alias, WARNING: don't use it                                    |
+# +--------------------------------------------------------------------------+
+alias addfile {
+      if ([$0])
+         { if ($index(/ $0))
+              {}
+              { ^assign FILELIST $FILELIST $strip(*@ $0) }
+           addfile $1- }
+         {}
+}
+# +--------------------------------------------------------------------------+
+# | Internal alias, WARNING: don't use it                                    |
+# +--------------------------------------------------------------------------+
+alias dosend {
+      @ COUNT5 = 0
+      while (word($COUNT5 $NICKLIST))
+            { @ COUNT6 = 0
+              while (word($COUNT6 $FILELIST))
+                    { dcc send $word($COUNT5 $NICKLIST) $word($COUNT6 $FILELIST)
+                      @ COUNT6 = COUNT6 + 1
+                      @ SENDTOT = SENDTOT + 1 }
+              ^assign -COUNT6
+              @ COUNT5 = COUNT5 + 1 }
+      ^assign -COUNT5
+}
+# +--------------------------------------------------------------------------+
+# | Status alias                                                             |
+# +--------------------------------------------------------------------------+
+alias STATUSmcommand {
+      echo  [XDCC]  AUTOGET  : $AUTOGET
+      echo  [XDCC]  AUTOSEND : $AUTOSEND
+      echo  [XDCC]  AUTOCLOSE: $AUTOCLOSE
+      echo  [XDCC]  NOISE    : $NOISE
+      echo  [XDCC]  OFFERED  : $TOTFILE
+      echo  [XDCC]  GET COUNT: $GETCOUNT
+      echo  [XDCC]  CHSTATUS : $CHANGEST
+      echo  [XDCC]  DIR      : $W
+}
+# +--------------------------------------------------------------------------+
+# | This alias add files to the offer list                                   |
+# +--------------------------------------------------------------------------+
+alias OFFERmcommand {
+      ^assign TMPVAR $"[XDCC] Files: "
+      if ([$TMPVAR])
+         { if ([$getdir()] == [OK])
+              { ^assign TMPDESC $"[XDCC] Description: "
+                if ([$TMPDESC])
+                   { @ TOTFILE = TOTFILE + 1
+                     ^assign ARRAYFILE[$TOTFILE] $FILELIST
+                     ^assign ARRAYDESC[$TOTFILE] $TMPDESC
+                     ^assign ARRAYPATH[$TOTFILE] $W
+                     me says: every1 who wants $TMPDESC type
+                     me says: /msg $N XDCC SEND #$TOTFILE
+                     xdccecho Files $FILELIST added to Pack #$TOTFILE
+                     change_statusline }
+                   {}
+                ^assign -TMPDESC }
+              { echo  [XDCC]  Error: one or more of this files don't exist. } }
+         {}
+      ^assign -TMPVAR
+}
+# +--------------------------------------------------------------------------+
+# | This alias take off files from the offer list                            |
+# +--------------------------------------------------------------------------+
+alias DOFFERmcommand {
+      if (TOTFILE > 0)
+         { ^assign TMPNUM $"File to remove (* for all) #"
+           if ([$TMPNUM])
+              { if ([$TMPNUM] == [*])
+                   { ^assign TOTFILE 0
+                     foreach ARRAYFILE XX
+                             { ^assign -ARRAYFILE[$XX]
+                               ^assign -ARRAYDESC[$XX]
+                               ^assign -ARRAYPATH[$XX] }
+                     change_statusline
+                     echo  [XDCC]  All files removed from offer list. }
+                   { if ((TMPNUM <= TOTFILE) && (TMPNUM > 0))
+                        { @ COUNT7 = 0
+                          while ([$ARRAYFILE[${COUNT7+1}]])
+                                { if (COUNT7 >= TMPNUM)
+                                     { ^assign ARRAYFILE[$COUNT7] $ARRAYFILE[${COUNT7+1}]
+                                       ^assign ARRAYDESC[$COUNT7] $ARRAYDESC[${COUNT7+1}]
+                                       ^assign ARRAYPATH[$COUNT7] $ARRAYPATH[${COUNT7+1}] }
+                                     {}
+                                  @ COUNT7 = COUNT7 + 1 }
+                          ^assign -ARRAYFILE[$COUNT7]
+                          ^assign -ARRAYDESC[$COUNT7]
+                          ^assign -ARRAYPATH[$COUNT7]
+                          @ TOTFILE = TOTFILE - 1
+                          change_statusline
+                          ^assign -COUNT7 }
+                        { echo  [XDCC]  Try between 1 - $TOTFILE ... } } }
+             {}
+           ^assign -TMPNUM }
+         { echo  [XDCC]  There are no files offered. }
+}
+# +--------------------------------------------------------------------------+
+# | Switch AutoGet status ON/OFF                                             |
+# +--------------------------------------------------------------------------+
+alias AUTOGETmcommand {
+      if ([$AUTOGET] == [ON])
+         { ^assign AUTOGET OFF }
+         { ^assign AUTOGET ON }
+      echo  [XDCC]  AUTOGET: $AUTOGET
+      change_statusline
+}
+# +--------------------------------------------------------------------------+
+# | Switch AutoSend status ON/OFF                                            |
+# +--------------------------------------------------------------------------+
+alias AUTOSENDmcommand {
+      if ([$AUTOSEND] == [ON])
+         { ^assign AUTOSEND OFF }
+         { ^assign AUTOSEND ON }
+      echo  [XDCC]  AUTOSEND: $AUTOSEND
+      change_statusline
+}
+# +--------------------------------------------------------------------------+
+# | Switch AutoClose status ON/OFF                                           |
+# +--------------------------------------------------------------------------+
+alias AUTOCLOSEmcommand {
+      if ([$AUTOCLOSE] == [ON])
+         { ^assign AUTOCLOSE OFF }
+         { ^assign AUTOCLOSE ON }
+      echo  [XDCC]  AUTOCLOSE: $AUTOCLOSE
+      change_statusline
+}
+# +--------------------------------------------------------------------------+
+# | Switch Noise status ON/OFF                                               |
+# +--------------------------------------------------------------------------+
+alias NOISEmcommand {
+      if ([$NOISE] == [ON])
+         { ^assign NOISE OFF }
+         { ^assign NOISE ON }
+      echo  [XDCC]  NOISE: $NOISE
+      change_statusline
+}
+# +--------------------------------------------------------------------------+
+# | Switch Change_status_line ON/OFF                                         |
+# +--------------------------------------------------------------------------+
+alias CSTATmcommand {
+      if ([$CHANGEST] == [ON])
+         { ^assign CHANGEST OFF }
+         { ^assign CHANGEST ON }
+      echo  [XDCC]  CHANGE_STATUS_LINE: $CHANGEST
+      change_statusline
+}
+# +--------------------------------------------------------------------------+
+# | Display Info if NOISE is ON                                              |
+# +--------------------------------------------------------------------------+
+alias xdccecho {
+      if ([$NOISE] == [ON])
+         { echo  [XDCC]  $0- }
+         {}
+}
+# +--------------------------------------------------------------------------+
+# | Parse all files offered                                                  |
+# +--------------------------------------------------------------------------+
+alias dccrequest {
+      ^assign TMP $1
+      ^assign DCCNICK $0
+      if (rindex(/ $TMP))
+         { ^assign DCCFILE $right(${@TMP-rindex(/ $1)+1} $1) }
+         { ^assign DCCFILE $1 }
+      if ([$AUTOGET] == [ON])
+         { dcc get $DCCNICK $DCCFILE
+           xdccecho Autogetting $DCCFILE from $DCCNICK }
+         { if ([$AUTOCLOSE] == [ON])
+              { xdccecho DCC SEND $DCCFILE from $DCCNICK request ignored.
+                dcc close get $DCCNICK }
+              { xdccecho DCC SEND $DCCFILE from $DCCNICK added to list
+                adddccrequest $DCCFILE $DCCNICK } }
+      ^assign -DCCNICK
+      ^assign -DCCFILE
+      ^assign -TMP
+}
+# +--------------------------------------------------------------------------+
+# | Add a nick and a file to the get array                                   |
+# +--------------------------------------------------------------------------+
+alias adddccrequest {
+      @ GETCOUNT = GETCOUNT + 1
+      ^assign ARRAYFILEGET[$GETCOUNT] $0
+      ^assign ARRAYNICKGET[$GETCOUNT] $1
+      change_statusline
+}
+# +--------------------------------------------------------------------------+
+# | Delete files from get array                                              |
+# +--------------------------------------------------------------------------+
+alias CLOSEmcommand {
+      if (GETCOUNT > 0)
+         { ^assign TMPNICK $"Nick to remove get files (* for all) :"
+           if ([$TMPNICK])
+              { if ([$TMPNICK] == [*])
+                   { ^assign GETCOUNT 0
+                     foreach ARRAYFILE XX
+                             { ^dcc close get $ARRAYNICKGET[$XX]
+                               ^assign -ARRAYFILEGET[$XX]
+                               ^assign -ARRAYNICKGET[$XX] }
+                     change_statusline
+                     echo  [XDCC]  All files removed from get list. }
+                   { @ COUNT8 = 1
+                     @ COUNT9 = 1
+                     @ COUNT10 = GETCOUNT
+                     while (COUNT9 <= COUNT10)
+                           { if ([$ARRAYNICKGET[$COUNT9]] != [$TMPNICK])
+                                { ^assign ARRAYFILEGET[$COUNT8] $ARRAYFILEGET[$COUNT9]
+                                  ^assign ARRAYNICKGET[$COUNT8] $ARRAYNICKGET[$COUNT9]
+                                  @ COUNT8 = COUNT8 + 1 }
+                                { ^dcc close get $TMPNICK
+                                  @ GETCOUNT = GETCOUNT - 1 }
+                             @ COUNT9 = COUNT9 + 1 }
+                     while (COUNT8 <= COUNT10)
+                           { ^assign -ARRAYFILEGET[$COUNT8]
+                             ^assign -ARRAYNICKGET[$COUNT8]
+                             @ COUNT8 = COUNT8 + 1 }
+                     change_statusline
+                     ^assign -COUNT8
+                     ^assign -COUNT9
+                     ^assign -COUNT10 } }
+              {}
+           ^assign -TMPNICK }
+         { echo  [XDCC]  There are no files offered. }
+}
+# +--------------------------------------------------------------------------+
+# | GET files from some1                                                     |
+# +--------------------------------------------------------------------------+
+alias DIRmcommand {
+      ^assign TMPVAR $"[XDCC] DIR ? :"
+      if ([$getdir()] == [OK])
+         { echo  [XDCC]  Files: $FILELIST }
+         {}
+      ^assign -TMPVAR
+}
+# +--------------------------------------------------------------------------+
+# | GET files from some1                                                     |
+# +--------------------------------------------------------------------------+
+alias GETmcommand {
+      if (GETCOUNT > 0)
+         { ^assign TMPNICK $"Nick to get files (* for all) #"
+           if ([$TMPNICK])
+              { if ([$TMPNICK] == [*])
+                   { ^assign GETCOUNT 0
+                     foreach ARRAYFILE XX
+                             { ^dcc get $ARRAYNICKGET[$XX] $ARRAYFILEGET[$XX]
+                               ^assign -ARRAYFILEGET[$XX]
+                               ^assign -ARRAYNICKGET[$XX] }
+                     change_statusline
+                     echo  [XDCC]  All files got from get list. }
+                   { @ COUNT8 = 1
+                     @ COUNT9 = 1
+                     @ COUNT10 = GETCOUNT
+                     echo  [XDCC]  Getting all files offered from $TMPNICK
+                     while (COUNT9 <= COUNT10)
+                           { if ([$ARRAYNICKGET[$COUNT9]] != [$TMPNICK])
+                                { ^assign ARRAYFILEGET[$COUNT8] $ARRAYFILEGET[$COUNT9]
+                                  ^assign ARRAYNICKGET[$COUNT8] $ARRAYNICKGET[$COUNT9]
+                                  @ COUNT8 = COUNT8 + 1 }
+                                { ^dcc get $TMPNICK $ARRAYFILEGET[$COUNT9]
+                                  @ GETCOUNT = GETCOUNT - 1 }
+                             @ COUNT9 = COUNT9 + 1 }
+                     while (COUNT8 <= COUNT10)
+                           { ^assign -ARRAYFILEGET[$COUNT8]
+                             ^assign -ARRAYNICKGET[$COUNT8]
+                             @ COUNT8 = COUNT8 + 1 }
+                     change_statusline
+                     ^assign -COUNT8
+                     ^assign -COUNT9
+                     ^assign -COUNT10 } }
+              {}
+           ^assign -TMPNICK }
+         { echo  [XDCC]  There are no files offered. }
+}
+# +--------------------------------------------------------------------------+
+# | GLIST list files pending to get                                          |
+# +--------------------------------------------------------------------------+
+alias GLISTmcommand {
+      if (GETCOUNT > 0)
+         { ^assign TMPNICK $"Nick to list pending files (* for all) #"
+           if ([$TMPNICK])
+              { @ COUNT11 = GETCOUNT
+                while (COUNT11 <= GETCOUNT)
+                      { if (match($TMPNICK $ARRAYNICKGET[$COUNT11]))
+                           { echo  [XDCC]  $ARRAYNICKGET[$COUNT11] : $ARRAYFILEGET[$COUNT11] }
+                           {}
+                        @ COUNT11 = COUNT11 + 1 }
+                ^assign -COUNT11 }
+              {}
+           ^assign -TMPNICK }
+         { echo  [XDCC]  There are no files offered. }
+}
+# +--------------------------------------------------------------------------+
+# | Change the status line                                                   |
+# +--------------------------------------------------------------------------+
+alias change_statusline {
+      if ([$CHANGEST] == [ON])
+         { if ([$AUTOGET] == [ON])
+              { ^assign TMP G }
+              { ^assign TMP | }
+           if ([$AUTOSEND] == [ON])
+              { ^assign TMP ${TMP}S }
+              { ^assign TMP ${TMP}| }
+           if ([$NOISE] == [ON])
+              { ^assign TMP ${TMP}N }
+              { ^assign TMP ${TMP}| }
+           if ([$AUTOCLOSE] == [ON])
+              { ^assign TMP ${TMP}C }
+              { ^assign TMP ${TMP}| }
+           if (TOTFILE < 10)
+              { ^assign TMP ${TMP}0${TOTFILE}- }
+              { ^assign TMP $TMP${TOTFILE}- }
+           if (GETCOUNT < 10)
+              { ^assign TMP ${TMP}0${GETCOUNT} }
+              { ^assign TMP $TMP$GETCOUNT }
+           ^assign TMP [${TMP}] $OLD_STATUS }
+         { ^assign TMP $OLD_STATUS }
+      ^set STATUS_FORMAT $TMP
+      ^assign -TMP
+}
+# +--------------------------------------------------------------------------+
+# | Load file of offered ones                                                |
+# +--------------------------------------------------------------------------+
+alias loadfilecommand {
+      ^assign LOAD_ERROR NO
+      ^on exec_error "load_files *" {
+           echo  [XDCC]  Error: $1-
+           assign LOAD_ERROR YES }
+      ^on ^exec "load_files *" add_file $$1-
+      ^exec -name load_files cat $OFFERFILE
+      ^wait %load_files
+      if ([$LOAD_ERROR] == [YES])
+         { echo  [XDCC]  Error loading file .... }
+         { echo  [XDCC]  File loaded ok }
+      ^assign -LOAD_ERROR
+}
+# +--------------------------------------------------------------------------+
+# | Add a file from the offerfile                                            |
+# +--------------------------------------------------------------------------+
+alias add_file {
+      if ([$0] == [files])
+         { @ TOTFILE = TOTFILE + 1
+           ^assign ARRAYFILE[$TOTFILE] $1- }
+         { if ([$0] == [desc])
+              { ^assign ARRAYDESC[$TOTFILE] $1- }
+              { if ([$0] == [path])
+                   { ^assign ARRAYPATH[$TOTFILE] $1- }
+                   { echo  [XDCC]  Error loading file on line $0-
+                     echo  [XDCC]  must be FILES .... or DESC .... or PATH .... } } }
+}
+# +--------------------------------------------------------------------------+
+# | Load file of offered on script load time                                 |
+# +--------------------------------------------------------------------------+
+if ([$LOADFILE] == [ON])
+   { eval loadfilecommand }
+# +--------------------------------------------------------------------------+
+# | Change status line a load script time
+# +--------------------------------------------------------------------------+
+eval change_statusline
+# +--------------------------------------------------------------------------+
+# | Echo load script info                                                    |
+# +--------------------------------------------------------------------------+
+eval echo  [XDCC]  XDCC Script $XDCCVER (c) XaBi'93 Loaded OK.
+echo  [XDCC]  Type /XDCC HELP or /XDCC HELP [Command] for help.
